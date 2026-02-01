@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "SmartBRGY",
+    "slug": "my-goals",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/SmartBRGY.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/iconic.jpg",
+        "backgroundColor": "#ffae00"
+      },
+      "package": "com.anonymous.mygoals"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 300,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffae00"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
