@@ -1,13 +1,14 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";  // ✅ Firestore
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBewCXwJMozcF9kmylFMYYdUhl0f-kWutY",
-  authDomain: "smartbrgy-3a8bd.firebaseapp.com",
-  projectId: "smartbrgy-3a8bd",
-  storageBucket: "smartbrgy-3a8bd.firebasestorage.app",
-  messagingSenderId: "965526864145",
-  appId: "1:965526864145:web:21186856370f5d911bccb0"
+  apiKey: "AIzaSyBv_ZD379btnkOpgmh5hfhSVPv3aL8DCqU",
+  authDomain: "gamestudy-f0ecd.firebaseapp.com",
+  projectId: "gamestudy-f0ecd",
+  storageBucket: "gamestudy-f0ecd.firebasestorage.app",
+  messagingSenderId: "441059387353",
+  appId: "1:441059387353:web:45eb0359c72e6ab5b21bc8"
 };
 
 const app = initializeApp(firebaseConfig);

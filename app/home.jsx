@@ -72,7 +72,7 @@ const Home = () => {
           <HomeButton text="Report Incident" onPress={() => router.push("/report")} />
           <HomeButton text="Announcement" onPress={() => router.push("/announcement")} />
           <HomeButton text="Document Request" onPress={() => router.push("/documents")} />
-          <HomeButton text="Concern / Help" onPress={() => router.push("/concern")} />
+           <HomeButton text="Concern" onPress={() => router.push("/feedback")} />   
 
         </View>
 
@@ -127,7 +127,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    
+    marginLeft: 70,
+    width: 300,
   },
   greetText: {
     backgroundColor: "#43a047",
