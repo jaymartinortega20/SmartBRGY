@@ -11,40 +11,34 @@ import {
   Alert,
   Image,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+
 import * as ImagePicker from "expo-image-picker";
+
+import { db } from "../../firebaseConfig";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
 import GradientHeader from "../../components/GradientHeader";
 
-const ReportIncident = () => {
-  const [title, setTitle] = useState("");
-  const [type, setType] = useState("Disturbance");
-  const [description, setDescription] = useState("");
+const Report = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [location, setLocation] = useState("");
+  const [incidentType, setIncidentType] = useState("");
+  const [details, setDetails] = useState("");
   const [photo, setPhoto] = useState(null);
-  const [showDropdown, setShowDropdown] = useState(false);
 
-  const incidentTypes = [
-    "Disturbance",
-    "Theft",
-    "Accident",
-    "Vandalism",
-    "Other",
-  ];
-
-  // 📸 PICK IMAGE
+  // 📸 IMAGE PICKER
   const pickImage = async () => {
-    const permission =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      Alert.alert("Permission Required", "Allow gallery access.");
+      Alert.alert("Permission required");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.7,
+      quality: 1,
     });
 
     if (!result.canceled) {
@@ -52,22 +46,37 @@ const ReportIncident = () => {
     }
   };
 
-  // 🚀 SUBMIT
-  const handleSubmit = () => {
-    if (!title.trim() || !description.trim()) {
-      Alert.alert("Error", "Please fill in required fields.");
+  // 🚀 SUBMIT TO FIREBASE (ADMIN REALTIME)
+  const handleSubmit = async () => {
+    if (!name || !phone || !location || !incidentType) {
+      Alert.alert("Error", "Please fill all required fields");
       return;
     }
 
-    Alert.alert("Success", "Incident Report Submitted!");
+    try {
+      await addDoc(collection(db, "reports"), {
+        name,
+        phone,
+        location,
+        incidentType,
+        details,
+        photo,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
 
-    // CLEAR FORM
-    setTitle("");
-    setDescription("");
-    setName("");
-    setPhone("");
-    setPhoto(null);
-    setType("Disturbance");
+      Alert.alert("Success", "Report submitted!");
+
+      setName("");
+      setPhone("");
+      setLocation("");
+      setIncidentType("");
+      setDetails("");
+      setPhoto(null);
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Error", "Failed to submit report");
+    }
   };
 
   return (
@@ -77,98 +86,68 @@ const ReportIncident = () => {
       resizeMode="cover"
     >
       <SafeAreaView style={styles.safe}>
-        <GradientHeader title="Report an Incident" />
+        <GradientHeader title="Report Incident" />
 
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.card}>
 
-            {/* TITLE */}
-            <Text style={styles.label}>Report Title *</Text>
+            {/* IMAGE PICKER */}
+            <TouchableOpacity style={styles.imageBox} onPress={pickImage}>
+              {photo ? (
+                <Image source={{ uri: photo }} style={styles.image} />
+              ) : (
+                <Text style={styles.imageText}>
+                  Tap to add incident photo
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* INPUTS (DOCUMENT STYLE UI) */}
             <TextInput
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Briefly describe the incident"
               style={styles.input}
-              placeholderTextColor="#777"
-            />
-
-            {/* INCIDENT TYPE */}
-            <Text style={styles.label}>Incident Type</Text>
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={() => setShowDropdown(!showDropdown)}
-            >
-              <Text style={styles.dropdownText}>{type}</Text>
-              <Ionicons name="chevron-down" size={18} color="#555" />
-            </TouchableOpacity>
-
-            {showDropdown &&
-              incidentTypes.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.option}
-                  onPress={() => {
-                    setType(item);
-                    setShowDropdown(false);
-                  }}
-                >
-                  <Text>{item}</Text>
-                </TouchableOpacity>
-              ))}
-
-            {/* DESCRIPTION */}
-            <Text style={styles.label}>Description *</Text>
-            <TextInput
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              placeholder="Provide a detailed description..."
-              style={[styles.input, styles.textArea]}
-              placeholderTextColor="#777"
-            />
-
-            {/* PHOTO */}
-            <Text style={styles.label}>Photo (Optional)</Text>
-            <TouchableOpacity style={styles.photoBtn} onPress={pickImage}>
-              <Ionicons name="image-outline" size={20} color="#4caf50" />
-              <Text style={styles.photoText}>Attach Photo</Text>
-            </TouchableOpacity>
-
-            {photo && (
-              <Image source={{ uri: photo }} style={styles.preview} />
-            )}
-
-            {/* CONTACT INFO */}
-            <Text style={styles.section}>
-              Your Contact Info (Optional)
-            </Text>
-
-            <TextInput
+              placeholder="Enter your full name"
+              placeholderTextColor="#999"
               value={name}
               onChangeText={setName}
-              placeholder="Your Name"
-              style={styles.input}
-              placeholderTextColor="#777"
             />
 
             <TextInput
+              style={styles.input}
+              placeholder="Enter phone number"
+              placeholderTextColor="#999"
+              keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
-              placeholder="Phone Number"
-              keyboardType="phone-pad"
-              style={styles.input}
-              placeholderTextColor="#777"
             />
 
-            {/* SUBMIT BUTTON */}
-            <TouchableOpacity
-              style={styles.submitBtn}
-              onPress={handleSubmit}
-            >
-              <Text style={styles.submitText}>
-                Submit Report
-              </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter location of incident"
+              placeholderTextColor="#999"
+              value={location}
+              onChangeText={setLocation}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Incident type (e.g. Theft, Fire)"
+              placeholderTextColor="#999"
+              value={incidentType}
+              onChangeText={setIncidentType}
+            />
+
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Describe what happened..."
+              placeholderTextColor="#999"
+              multiline
+              value={details}
+              onChangeText={setDetails}
+            />
+
+            {/* SUBMIT */}
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+              <Text style={styles.submitText}>Submit Report</Text>
             </TouchableOpacity>
 
           </View>
@@ -178,6 +157,8 @@ const ReportIncident = () => {
   );
 };
 
+export default Report;
+
 const styles = StyleSheet.create({
   bg: { flex: 1 },
   safe: { flex: 1 },
@@ -186,6 +167,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
+  // SAME AS DOCUMENT UI
   card: {
     backgroundColor: "#fff",
     borderRadius: 14,
@@ -193,20 +175,11 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  label: {
-    fontSize: 13,
-    fontWeight: "700",
-    marginBottom: 6,
-    color: "#333",
-  },
-
   input: {
     backgroundColor: "#f3f3f3",
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    marginBottom: 12,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
   },
 
   textArea: {
@@ -214,63 +187,10 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
 
-  dropdown: {
-    backgroundColor: "#f3f3f3",
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 6,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  dropdownText: {
-    fontSize: 13,
-    color: "#333",
-  },
-
-  option: {
-    backgroundColor: "#eee",
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-
-  photoBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#e8f5e9",
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 14,
-  },
-
-  photoText: {
-    color: "#4caf50",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-
-  preview: {
-    width: "100%",
-    height: 180,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-
-  section: {
-    fontSize: 13,
-    fontWeight: "800",
-    marginBottom: 8,
-    color: "#333",
-  },
-
   submitBtn: {
-    backgroundColor: "#4caf50",
-    paddingVertical: 14,
-    borderRadius: 8,
+    backgroundColor: "#2e7d32",
+    padding: 14,
+    borderRadius: 10,
     marginTop: 10,
   },
 
@@ -278,8 +198,25 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "800",
     textAlign: "center",
-    fontSize: 14,
+  },
+
+  imageBox: {
+    backgroundColor: "#f3f3f3",
+    height: 120,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+
+  image: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+  },
+
+  imageText: {
+    color: "#999",
+    fontWeight: "600",
   },
 });
-
-export default ReportIncident;

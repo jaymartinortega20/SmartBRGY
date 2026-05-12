@@ -8,16 +8,51 @@ import {
   TextInput,
   TouchableOpacity,
   ImageBackground,
+  Alert,
 } from "react-native";
+
 import { Picker } from "@react-native-picker/picker";
+import { db } from "../../firebaseConfig";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
 import GradientHeader from "../../components/GradientHeader";
 
-const RequestDocument = () => {
+const Documents = () => {
   const [documentType, setDocumentType] = useState("Barangay Clearance");
   const [purpose, setPurpose] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
+
+  const handleSubmit = async () => {
+    if (!purpose || !name || !phone) {
+      Alert.alert("Error", "Please fill all required fields");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "documents"), {
+        documentType,
+        purpose,
+        name,
+        phone,
+        specialRequest,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+
+      Alert.alert("Success", "Request submitted!");
+
+      setPurpose("");
+      setName("");
+      setPhone("");
+      setSpecialRequest("");
+      setDocumentType("Barangay Clearance");
+    } catch (error) {
+      console.log(error);
+      Alert.alert("Error", "Failed to submit request");
+    }
+  };
 
   return (
     <ImageBackground
@@ -26,77 +61,84 @@ const RequestDocument = () => {
       resizeMode="cover"
     >
       <SafeAreaView style={styles.safe}>
-        <GradientHeader title="Request a Document" />
+        <GradientHeader title="Request Document" />
 
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.card}>
-            {/* Document Type */}
+
+            {/* DOCUMENT TYPE */}
             <Text style={styles.label}>Document Type *</Text>
+
             <View style={styles.pickerBox}>
               <Picker
                 selectedValue={documentType}
-                onValueChange={setDocumentType}
+                onValueChange={(value) => setDocumentType(value)}
+                style={styles.picker}
               >
-                <Picker.Item label="Barangay Clearance" value="Barangay Clearance" />
-                <Picker.Item label="Barangay ID" value="Barangay ID" />
-                <Picker.Item label="Certificate of Residency" value="Certificate of Residency" />
-                <Picker.Item label="Business Permit" value="Business Permit" />
-                <Picker.Item label="Other" value="Other" />
+                <Picker.Item label="Barangay Clearance" value="Barangay Clearance" color="#000" />
+                <Picker.Item label="Barangay ID" value="Barangay ID" color="#000" />
+                <Picker.Item label="Certificate of Residency" value="Certificate of Residency" color="#000" />
+                <Picker.Item label="Business Permit" value="Business Permit" color="#000" />
+                <Picker.Item label="Other" value="Other" color="#000" />
               </Picker>
             </View>
 
-            {/* Purpose */}
+            {/* PURPOSE */}
             <Text style={styles.label}>Purpose *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Explain the reason for requesting this document."
-              multiline
+              placeholder="Enter purpose here..."
+              placeholderTextColor="#888"
               value={purpose}
               onChangeText={setPurpose}
             />
 
-            {/* Contact Info */}
-            <Text style={styles.sectionTitle}>Your Contact Information</Text>
-
-            <Text style={styles.label}>Your Name *</Text>
+            {/* NAME */}
+            <Text style={styles.label}>Full Name *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your full name"
+              placeholder="Enter your full name..."
+              placeholderTextColor="#888"
               value={name}
               onChangeText={setName}
             />
 
+            {/* PHONE */}
             <Text style={styles.label}>Phone Number *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your phone number"
+              placeholder="Enter active phone number..."
+              placeholderTextColor="#888"
               keyboardType="phone-pad"
               value={phone}
               onChangeText={setPhone}
             />
 
-            {/* Special Request */}
-            <Text style={styles.label}>Special Request (Optional)</Text>
+            {/* SPECIAL REQUEST */}
+            <Text style={styles.label}>Special Request</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Include any additional instructions or details if needed."
+              style={[styles.input, styles.textArea]}
+              placeholder="Optional message or instructions..."
+              placeholderTextColor="#888"
               multiline
               value={specialRequest}
               onChangeText={setSpecialRequest}
             />
 
-            {/* Submit */}
-            <TouchableOpacity style={styles.submitBtn}>
+            {/* SUBMIT */}
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
               <Text style={styles.submitText}>Submit Request</Text>
             </TouchableOpacity>
+
           </View>
         </ScrollView>
+
       </SafeAreaView>
     </ImageBackground>
   );
 };
 
-export default RequestDocument;
+export default Documents;
 
 const styles = StyleSheet.create({
   bg: { flex: 1 },
@@ -104,57 +146,56 @@ const styles = StyleSheet.create({
 
   container: {
     padding: 16,
+    paddingBottom: 40,
   },
 
   card: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 16,
-    elevation: 4,
+    padding: 18,
+    elevation: 5,
   },
 
   label: {
-    fontWeight: "700",
-    marginBottom: 6,
-    marginTop: 12,
     fontSize: 13,
-  },
-
-  sectionTitle: {
-    marginTop: 18,
-    fontWeight: "800",
-    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 10,
+    marginBottom: 5,
+    color: "#222",
   },
 
   input: {
-    borderWidth: 1,
-    borderColor: "#646464ff",
-    borderRadius: 10,
+    backgroundColor: "#f0f0f0",
     padding: 12,
-    fontSize: 14,
-    backgroundColor: "#fafafa",
-    marginBottom: 4,
+    borderRadius: 10,
+    color: "#000",
+  },
+
+  textArea: {
+    height: 90,
+    textAlignVertical: "top",
   },
 
   pickerBox: {
-    borderWidth: 1,
-    borderColor: "#000",
+    backgroundColor: "#f0f0f0",
     borderRadius: 10,
-    overflow: "hidden",
-    backgroundColor: "#575757ff",
+    marginBottom: 10,
+  },
+
+  picker: {
+    color: "#000", // 🔥 FIX: BLACK TEXT
   },
 
   submitBtn: {
-    marginTop: 20,
     backgroundColor: "#2e7d32",
-    paddingVertical: 14,
+    padding: 14,
     borderRadius: 12,
-    alignItems: "center",
+    marginTop: 15,
   },
 
   submitText: {
     color: "#fff",
+    textAlign: "center",
     fontWeight: "800",
-    fontSize: 15,
   },
 });

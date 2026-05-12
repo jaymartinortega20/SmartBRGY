@@ -3,26 +3,29 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
   SafeAreaView,
   ScrollView,
   TextInput,
+  TouchableOpacity,
   ImageBackground,
   Modal,
+  Image,
+  Alert,
 } from "react-native";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter, useFocusEffect } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
+
 import GradientHeader from "../../components/GradientHeader";
 
 const Profile = () => {
+  const router = useRouter();
+
   const [user, setUser] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
 
-  // editable states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -30,15 +33,13 @@ const Profile = () => {
   const [birthdate, setBirthdate] = useState("");
   const [photo, setPhoto] = useState(null);
 
-  const router = useRouter();
-
   const loadProfile = async () => {
-    const storedUser = await AsyncStorage.getItem("currentUser");
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
+    const data = await AsyncStorage.getItem("currentUser");
+
+    if (data) {
+      const parsed = JSON.parse(data);
       setUser(parsed);
 
-      // preload edit fields
       setName(parsed.name || "");
       setEmail(parsed.email || "");
       setPhone(parsed.phone || "");
@@ -54,8 +55,8 @@ const Profile = () => {
     }, [])
   );
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Yes",
@@ -71,7 +72,7 @@ const Profile = () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      Alert.alert("Permission needed", "Allow access to gallery");
+      Alert.alert("Permission required");
       return;
     }
 
@@ -87,11 +88,11 @@ const Profile = () => {
 
   const handleSave = async () => {
     if (!name || !email || !phone) {
-      Alert.alert("Missing Fields", "Please fill required fields");
+      Alert.alert("Error", "Required fields missing");
       return;
     }
 
-    const updatedUser = {
+    const updated = {
       name,
       email,
       phone,
@@ -100,10 +101,12 @@ const Profile = () => {
       profilePic: photo,
     };
 
-    await AsyncStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    setUser(updatedUser);
+    await AsyncStorage.setItem("currentUser", JSON.stringify(updated));
+
+    setUser(updated);
     setModalVisible(false);
-    Alert.alert("Success", "Profile updated!");
+
+    Alert.alert("Success", "Profile updated");
   };
 
   return (
@@ -114,9 +117,9 @@ const Profile = () => {
     >
       <SafeAreaView style={styles.safe}>
 
-        {/* HEADER */}
         <View style={{ position: "relative" }}>
           <GradientHeader title="My Profile" />
+
           <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={22} color="#fff" />
           </TouchableOpacity>
@@ -125,91 +128,57 @@ const Profile = () => {
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.card}>
 
-            {/* Avatar */}
-            <View style={styles.avatarContainer}>
-              {user.profilePic ? (
-                <Image source={{ uri: user.profilePic }} style={styles.avatar} />
+            {/* CIRCLE AVATAR FIXED */}
+            <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
+              {photo ? (
+                <Image source={{ uri: photo }} style={styles.avatar} />
               ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="camera" size={30} color="#666" />
-                  <Text style={styles.addPhotoText}>Add Photo</Text>
+                <View style={styles.placeholder}>
+                  <Ionicons name="camera" size={32} color="#2e7d32" />
+                  <Text style={styles.addText}>Tap to add photo</Text>
                 </View>
               )}
-            </View>
-
-            {/* Info */}
-            <View style={styles.infoRow}>
-              <Ionicons name="person" size={20} color="#2e7d32" />
-              <Text style={styles.infoText}>{user.name || "No name"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar" size={20} color="#2e7d32" />
-              <Text style={styles.infoText}>{user.birthdate || "No birthdate"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Ionicons name="call" size={20} color="#2e7d32" />
-              <Text style={styles.infoText}>{user.phone || "No phone"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Ionicons name="mail" size={20} color="#2e7d32" />
-              <Text style={styles.infoText}>{user.email || "No email"}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Ionicons name="location" size={20} color="#2e7d32" />
-              <Text style={styles.infoText}>{user.address || "No address"}</Text>
-            </View>
-
-            {/* Edit Button */}
-            <TouchableOpacity style={styles.submitBtn} onPress={() => setModalVisible(true)}>
-              <Text style={styles.submitText}>Edit Profile</Text>
             </TouchableOpacity>
+
+            <Text style={styles.info}>Name: {user.name || "-"}</Text>
+            <Text style={styles.info}>Email: {user.email || "-"}</Text>
+            <Text style={styles.info}>Phone: {user.phone || "-"}</Text>
+            <Text style={styles.info}>Address: {user.address || "-"}</Text>
+            <Text style={styles.info}>Birthdate: {user.birthdate || "-"}</Text>
+
+            <TouchableOpacity
+              style={styles.editBtn}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={styles.editText}>Edit Profile</Text>
+            </TouchableOpacity>
+
           </View>
         </ScrollView>
 
-        {/* FLOATING MODAL */}
+        {/* MODAL */}
         <Modal visible={modalVisible} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalCard}>
+          <View style={styles.overlay}>
+            <View style={styles.modal}>
 
               <ScrollView>
-                <Text style={styles.modalTitle}>Edit Profile</Text>
 
-                <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
-                  {photo ? (
-                    <Image source={{ uri: photo }} style={styles.avatar} />
-                  ) : (
-                    <View style={styles.avatarPlaceholder}>
-                      <Text style={{ fontSize: 12 }}>Add Photo</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                <Text style={styles.title}>Edit Profile</Text>
 
-                <Text style={styles.label}>Full Name *</Text>
-                <TextInput style={styles.input} value={name} onChangeText={setName} />
+                <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} />
+                <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
+                <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} />
+                <TextInput style={styles.input} placeholder="Address" value={address} onChangeText={setAddress} />
+                <TextInput style={styles.input} placeholder="Birthdate" value={birthdate} onChangeText={setBirthdate} />
 
-                <Text style={styles.label}>Email *</Text>
-                <TextInput style={styles.input} value={email} onChangeText={setEmail} />
-
-                <Text style={styles.label}>Phone *</Text>
-                <TextInput style={styles.input} value={phone} onChangeText={setPhone} />
-
-                <Text style={styles.label}>Birthdate</Text>
-                <TextInput style={styles.input} value={birthdate} onChangeText={setBirthdate} />
-
-                <Text style={styles.label}>Address</Text>
-                <TextInput style={styles.input} value={address} onChangeText={setAddress} />
-
-                <TouchableOpacity style={styles.submitBtn} onPress={handleSave}>
-                  <Text style={styles.submitText}>Save</Text>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                  <Text style={styles.saveText}>Save</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                   <Text style={{ textAlign: "center", marginTop: 10 }}>Cancel</Text>
                 </TouchableOpacity>
+
               </ScrollView>
 
             </View>
@@ -227,96 +196,112 @@ const styles = StyleSheet.create({
   bg: { flex: 1 },
   safe: { flex: 1 },
 
-  logoutBtn: {
-    position: "absolute",
-    right: 19,
-    top: 25,
-    backgroundColor: "#2e7d32",
-    padding: 8,
-    borderRadius: 20,
-    marginTop: 20,
-  },
-
   container: { padding: 16 },
 
   card: {
     backgroundColor: "#fff",
-    borderRadius: 18,
-    padding: 30,
-    elevation: 10,
+    padding: 20,
+    borderRadius: 15,
     alignItems: "center",
   },
 
-  avatarContainer: { marginBottom: 15 },
+  /* 🔥 FIXED CIRCLE AVATAR */
+  avatarWrapper: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: "#2e7d32",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+    backgroundColor: "#f5f5f5",
+    overflow: "hidden",
+  },
 
-  avatar: { width: 100, height: 100, borderRadius: 50 },
+  avatar: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 60,
+  },
 
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#09ff00ff",
+  placeholder: {
     justifyContent: "center",
     alignItems: "center",
   },
 
-  addPhotoText: { fontSize: 12, marginTop: 5, color: "#000000ff" },
-
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    marginVertical: 6,
-    gap: 10,
+  addText: {
+    fontSize: 12,
+    color: "#2e7d32",
+    marginTop: 5,
+    fontWeight: "600",
   },
 
-  infoText: { fontSize: 14, color: "#333" },
+  info: {
+    marginTop: 8,
+    fontSize: 14,
+  },
 
-  submitBtn: {
-    marginTop: 20,
+  editBtn: {
+    marginTop: 15,
     backgroundColor: "#2e7d32",
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
+    padding: 12,
+    borderRadius: 10,
     width: "100%",
   },
 
-  submitText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  editText: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "800",
+  },
 
-  modalOverlay: {
+  logoutBtn: {
+    position: "absolute",
+    right: 15,
+    top: 44,
+    backgroundColor: "#2e7d32",
+    padding: 10,
+    borderRadius: 20,
+  },
+
+  overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     padding: 20,
   },
 
-  modalCard: {
+  modal: {
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: 15,
     padding: 20,
     maxHeight: "85%",
   },
 
-  modalTitle: {
-    fontSize: 16,
+  title: {
     fontWeight: "800",
+    fontSize: 16,
     marginBottom: 10,
     textAlign: "center",
   },
 
-  label: {
-    fontWeight: "700",
-    fontSize: 13,
-    marginTop: 12,
-    marginBottom: 6,
+  input: {
+    backgroundColor: "#f3f3f3",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
   },
 
-  input: {
-    borderWidth: 1,
-    borderColor: "#8a8a8aff",
+  saveBtn: {
+    backgroundColor: "#2e7d32",
+    padding: 14,
     borderRadius: 10,
-    padding: 12,
-    backgroundColor: "#fafafa",
-    fontSize: 14,
+  },
+
+  saveText: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "800",
   },
 });

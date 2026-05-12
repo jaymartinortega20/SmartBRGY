@@ -7,9 +7,9 @@ import {
   SafeAreaView,
   Image,
   ImageBackground,
-  ScrollView,
 } from "react-native";
-import { Link, useFocusEffect, useRouter } from "expo-router";
+
+import { useFocusEffect, useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -21,13 +21,14 @@ const Home = () => {
     try {
       const storedUser = await AsyncStorage.getItem("currentUser");
       const user = storedUser ? JSON.parse(storedUser) : null;
+
       if (user?.profilePic) {
         setPhoto(user.profilePic);
       } else {
         setPhoto(null);
       }
     } catch (error) {
-      console.error("Error loading profile photo:", error);
+      console.log(error);
     }
   };
 
@@ -46,7 +47,6 @@ const Home = () => {
 
         {/* HEADER */}
         <View style={styles.headerContainer}>
-         
 
           <View style={styles.profileRow}>
             <Text style={styles.greetText}>
@@ -72,7 +72,7 @@ const Home = () => {
           <HomeButton text="Report Incident" onPress={() => router.push("/report")} />
           <HomeButton text="Announcement" onPress={() => router.push("/announcement")} />
           <HomeButton text="Document Request" onPress={() => router.push("/documents")} />
-           <HomeButton text="Concern" onPress={() => router.push("/feedback")} />   
+          <HomeButton text="Concern" onPress={() => router.push("/feedback")} />
 
         </View>
 
@@ -84,6 +84,16 @@ const Home = () => {
             resizeMode="contain"
           />
         </View>
+
+        {/* 🔒 ADMIN LOGIN BUTTON (HIDDEN STYLE) */}
+        <TouchableOpacity
+          style={styles.adminBtn}
+          onPress={() => router.push("/adminLogin")}
+        >
+          <Text style={styles.adminText}>
+            Admin
+          </Text>
+        </TouchableOpacity>
 
       </SafeAreaView>
     </ImageBackground>
@@ -104,25 +114,24 @@ const HomeButton = ({ text, onPress }) => (
   </TouchableOpacity>
 );
 
+export default Home;
+
+/* STYLES */
 const styles = StyleSheet.create({
   bg: {
     flex: 1,
   },
+
   safe: {
     flex: 1,
     justifyContent: "space-between",
   },
 
-  /* HEADER */
   headerContainer: {
     paddingTop: 100,
     paddingHorizontal: 20,
   },
-  timeText: {
-    fontSize: 12,
-    color: "#111",
-    marginBottom: 10,
-  },
+
   profileRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -130,6 +139,7 @@ const styles = StyleSheet.create({
     marginLeft: 70,
     width: 300,
   },
+
   greetText: {
     backgroundColor: "#43a047",
     color: "#fff",
@@ -139,16 +149,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     maxWidth: "75%",
   },
+
   profileImage: {
     width: 45,
     height: 45,
   },
 
-  /* BUTTON AREA */
   buttonsContainer: {
     alignItems: "center",
     marginTop: 40,
   },
+
   button: {
     width: 260,
     paddingVertical: 16,
@@ -157,28 +168,39 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     elevation: 5,
   },
+
   buttonText: {
     color: "#fff",
     fontSize: 17,
     fontWeight: "800",
-    letterSpacing: 0.5,
   },
 
-  /* FOOTER LOGO */
   footerLogo: {
     alignItems: "center",
     marginBottom: 40,
     marginLeft: 170,
   },
+
   logo: {
     width: 120,
     height: 120,
   },
-  footerText: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginTop: 4,
+
+  /* ADMIN BUTTON */
+  adminBtn: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "#2e7d32",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    elevation: 5,
+  },
+
+  adminText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 12,
   },
 });
-
-export default Home;

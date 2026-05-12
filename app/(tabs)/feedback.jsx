@@ -10,28 +10,47 @@ import {
   ImageBackground,
   Alert,
 } from "react-native";
+
+import { db } from "../../firebaseConfig";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+
 import GradientHeader from "../../components/GradientHeader";
 
-const SubmitConcern = () => {
+const Feedback = () => {
   const [subject, setSubject] = useState("");
   const [details, setDetails] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!subject || !details || !name || !phone) {
-      Alert.alert("Missing Fields", "Please fill in all required fields.");
+      Alert.alert("Error", "Please fill all required fields");
       return;
     }
 
-    Alert.alert("Success", "Your concern has been submitted!");
+    try {
+      await addDoc(collection(db, "feedbacks"), {
+        subject,
+        details,
+        name,
+        phone,
+        specialRequest,
+        status: "new",
+        createdAt: serverTimestamp(),
+      });
 
-    setSubject("");
-    setDetails("");
-    setName("");
-    setPhone("");
-    setSpecialRequest("");
+      Alert.alert("Success", "Concern submitted!");
+
+      setSubject("");
+      setDetails("");
+      setName("");
+      setPhone("");
+      setSpecialRequest("");
+    } catch (error) {
+      Alert.alert("Error", "Failed to submit feedback");
+      console.log(error);
+    }
   };
 
   return (
@@ -45,70 +64,59 @@ const SubmitConcern = () => {
 
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.card}>
-            <Text style={styles.description}>
-              Need assistance or have a concern? Please fill out the form below
-              to contact your barangay for help.
-            </Text>
 
-            {/* Subject */}
             <Text style={styles.label}>Subject *</Text>
             <TextInput
               style={styles.input}
-              placeholder="Briefly summarize your concern or request..."
+              placeholder="Enter subject..."
+              placeholderTextColor="#888"
               value={subject}
               onChangeText={setSubject}
             />
 
-            {/* Details */}
             <Text style={styles.label}>Details *</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Explain the reason for requesting this document."
+              placeholder="Explain your concern..."
+              placeholderTextColor="#888"
               multiline
               value={details}
               onChangeText={setDetails}
             />
 
-            {/* Contact */}
-            <Text style={styles.sectionTitle}>Your Contact Information</Text>
+            <Text style={styles.label}>Full Name *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your full name..."
+              placeholderTextColor="#888"
+              value={name}
+              onChangeText={setName}
+            />
 
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.label}>Your Name *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your full name"
-                  value={name}
-                  onChangeText={setName}
-                />
-              </View>
+            <Text style={styles.label}>Phone Number *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter phone number..."
+              placeholderTextColor="#888"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
 
-              <View style={styles.half}>
-                <Text style={styles.label}>Phone Number *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your phone number"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-            </View>
-
-            {/* Special Request */}
-            <Text style={styles.label}>Special Request (Optional)</Text>
+            <Text style={styles.label}>Special Request</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              placeholder="Include additional instruction or details if needed."
+              placeholder="Optional notes..."
+              placeholderTextColor="#888"
               multiline
               value={specialRequest}
               onChangeText={setSpecialRequest}
             />
 
-            {/* Submit */}
             <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
               <Text style={styles.submitText}>Submit Concern</Text>
             </TouchableOpacity>
+
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -116,81 +124,54 @@ const SubmitConcern = () => {
   );
 };
 
-export default SubmitConcern;
+export default Feedback;
 
 const styles = StyleSheet.create({
-  bg: {
-    flex: 1,
-  },
-
-  safe: {
-    flex: 1,
-  },
+  bg: { flex: 1 },
+  safe: { flex: 1 },
 
   container: {
     padding: 16,
   },
 
+  // SAME STYLE AS DOCUMENTS
   card: {
     backgroundColor: "#fff",
-    borderRadius: 18,
+    borderRadius: 16,
     padding: 18,
     elevation: 5,
   },
 
-  description: {
-    fontSize: 13,
-    color: "#444",
-    marginBottom: 10,
-  },
-
   label: {
-    fontWeight: "700",
     fontSize: 13,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-
-  sectionTitle: {
-    marginTop: 18,
-    fontWeight: "800",
-    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 10,
+    marginBottom: 5,
+    color: "#222",
   },
 
   input: {
-    borderWidth: 1,
-    borderColor: "#cfcfcf",
-    borderRadius: 10,
+    backgroundColor: "#f0f0f0",
     padding: 12,
-    backgroundColor: "#fafafa",
-    fontSize: 14,
+    borderRadius: 10,
+    color: "#000",
   },
 
   textArea: {
-    minHeight: 80,
+    height: 90,
     textAlignVertical: "top",
   },
 
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  half: {
-    width: "48%",
-  },
-
   submitBtn: {
-    marginTop: 20,
     backgroundColor: "#2e7d32",
-    paddingVertical: 14,
+    padding: 14,
     borderRadius: 12,
-    alignItems: "center",
+    marginTop: 15,
   },
 
   submitText: {
     color: "#fff",
+    textAlign: "center",
     fontWeight: "800",
-    fontSize: 15,
   },
 });

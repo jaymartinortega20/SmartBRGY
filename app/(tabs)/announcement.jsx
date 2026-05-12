@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,39 +11,53 @@ import {
   Animated,
   Pressable,
 } from "react-native";
+
+import { db } from "../../firebaseConfig";
+import {
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+} from "firebase/firestore";
+
 import GradientHeader from "../../components/GradientHeader";
 
 const Announcement = () => {
   const [selected, setSelected] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
+
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
-  const announcements = [
-    {
-      id: 1,
-      title: "Water Interruption Notice",
-      type: "EMERGENCY",
-      message:
-        "Water supply will be interrupted tomorrow from 9:00 AM to 5:00 PM.",
-      posted: "April 23, 2026, 3:45 PM",
-    },
-    {
-      id: 2,
-      title: "Community Clean-Up Drive",
-      type: "EVENT",
-      message:
-        "Join us for a barangay clean-up this Saturday at 7:00 AM.",
-      posted: "April 22, 2026, 10:15 AM",
-    },
-  ];
+  // 🔥 REAL-TIME FIREBASE LISTENER
+  useEffect(() => {
+    const q = query(
+      collection(db, "announcements"),
+      orderBy("posted", "desc")
+    );
 
+    const unsub = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      setAnnouncements(data);
+    });
+
+    return () => unsub();
+  }, []);
+
+  // OPEN MODAL
   const openModal = (item) => {
     setSelected(item);
+
     Animated.spring(scaleAnim, {
       toValue: 1,
       useNativeDriver: true,
     }).start();
   };
 
+  // CLOSE MODAL
   const closeModal = () => {
     Animated.timing(scaleAnim, {
       toValue: 0,
@@ -62,23 +76,39 @@ const Announcement = () => {
         <GradientHeader title="Barangay Announcement" />
 
         <ScrollView contentContainerStyle={styles.list}>
-          {announcements.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.card}
-              onPress={() => openModal(item)}
-            >
-              <Text style={styles.cardTitle}>{item.title}</Text>
-              <Text style={styles.cardType}>{item.type}</Text>
-              <Text numberOfLines={2} style={styles.cardText}>
-                {item.message}
+
+          {announcements.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>
+                No announcements yet
               </Text>
-            </TouchableOpacity>
-          ))}
+            </View>
+          ) : (
+            announcements.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.card}
+                onPress={() => openModal(item)}
+              >
+                <Text style={styles.cardTitle}>
+                  {item.title}
+                </Text>
+
+                <Text style={styles.cardType}>
+                  {item.type}
+                </Text>
+
+                <Text numberOfLines={2} style={styles.cardText}>
+                  {item.message}
+                </Text>
+              </TouchableOpacity>
+            ))
+          )}
+
         </ScrollView>
       </SafeAreaView>
 
-      {/* ZOOM MODAL */}
+      {/* MODAL */}
       <Modal transparent visible={!!selected} animationType="fade">
         <Pressable style={styles.overlay} onPress={closeModal}>
           <Animated.View
@@ -92,12 +122,15 @@ const Announcement = () => {
                 <Text style={styles.modalTitle}>
                   {selected.title}
                 </Text>
+
                 <Text style={styles.modalType}>
                   {selected.type}
                 </Text>
+
                 <Text style={styles.modalText}>
                   {selected.message}
                 </Text>
+
                 <Text style={styles.posted}>
                   Posted: {selected.posted}
                 </Text>
@@ -110,11 +143,27 @@ const Announcement = () => {
   );
 };
 
+export default Announcement;
+
 const styles = StyleSheet.create({
   bg: { flex: 1 },
   safe: { flex: 1 },
 
-  list: { padding: 16 },
+  list: {
+    padding: 16,
+  },
+
+  emptyBox: {
+    backgroundColor: "#ffffffcc",
+    padding: 20,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+
+  emptyText: {
+    color: "#555",
+    fontWeight: "700",
+  },
 
   card: {
     backgroundColor: "#fff",
@@ -130,7 +179,7 @@ const styles = StyleSheet.create({
   },
 
   cardType: {
-    color: "#ff0000ff",
+    color: "#2e7d32",
     fontWeight: "700",
     marginTop: 4,
   },
@@ -139,8 +188,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: "#333",
   },
-
-  /* MODAL */
 
   overlay: {
     flex: 1,
@@ -179,5 +226,3 @@ const styles = StyleSheet.create({
     color: "#777",
   },
 });
-
-export default Announcement;
