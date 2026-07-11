@@ -84,17 +84,6 @@ const Home = () => {
             resizeMode="contain"
           />
         </View>
-
-        {/* 🔒 ADMIN LOGIN BUTTON (HIDDEN STYLE) */}
-        <TouchableOpacity
-          style={styles.adminBtn}
-          onPress={() => router.push("/adminLogin")}
-        >
-          <Text style={styles.adminText}>
-            Admin
-          </Text>
-        </TouchableOpacity>
-
       </SafeAreaView>
     </ImageBackground>
   );

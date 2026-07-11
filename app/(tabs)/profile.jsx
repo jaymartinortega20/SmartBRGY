@@ -3,20 +3,20 @@ import {
   View,
   Text,
   StyleSheet,
+  Image,
+  TouchableOpacity,
+  Alert,
   SafeAreaView,
   ScrollView,
-  TextInput,
-  TouchableOpacity,
   ImageBackground,
-  Modal,
-  Image,
-  Alert,
 } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+
+import { db } from "../../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
 
 import GradientHeader from "../../components/GradientHeader";
 
@@ -24,28 +24,42 @@ const Profile = () => {
   const router = useRouter();
 
   const [user, setUser] = useState({});
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [birthdate, setBirthdate] = useState("");
-  const [photo, setPhoto] = useState(null);
 
   const loadProfile = async () => {
-    const data = await AsyncStorage.getItem("currentUser");
+    try {
+      const storedUser = await AsyncStorage.getItem("currentUser");
 
-    if (data) {
-      const parsed = JSON.parse(data);
-      setUser(parsed);
+      if (!storedUser) return;
 
-      setName(parsed.name || "");
-      setEmail(parsed.email || "");
-      setPhone(parsed.phone || "");
-      setAddress(parsed.address || "");
-      setBirthdate(parsed.birthdate || "");
-      setPhoto(parsed.profilePic || null);
+      const parsedUser = JSON.parse(storedUser);
+
+      if (!parsedUser.id) {
+        setUser(parsedUser);
+        return;
+      }
+
+      const userRef = doc(db, "users", parsedUser.id);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        const data = snap.data();
+
+        const updatedUser = {
+          ...parsedUser,
+          ...data,
+        };
+
+        setUser(updatedUser);
+
+        await AsyncStorage.setItem(
+          "currentUser",
+          JSON.stringify(updatedUser)
+        );
+      } else {
+        setUser(parsedUser);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -55,61 +69,26 @@ const Profile = () => {
     }, [])
   );
 
-  const handleLogout = async () => {
-    Alert.alert("Logout", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Yes",
-        onPress: async () => {
-          await AsyncStorage.clear();
-          router.replace("/");
+  const handleLogout = () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
         },
-      },
-    ]);
+        {
+          text: "Yes",
+          onPress: async () => {
+            await AsyncStorage.clear();
+            router.replace("/");
+          },
+        },
+      ]
+    );
   };
-
-  const pickImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert("Permission required");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setPhoto(result.assets[0].uri);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!name || !email || !phone) {
-      Alert.alert("Error", "Required fields missing");
-      return;
-    }
-
-    const updated = {
-      name,
-      email,
-      phone,
-      address,
-      birthdate,
-      profilePic: photo,
-    };
-
-    await AsyncStorage.setItem("currentUser", JSON.stringify(updated));
-
-    setUser(updated);
-    setModalVisible(false);
-
-    Alert.alert("Success", "Profile updated");
-  };
-
-  return (
+    return (
     <ImageBackground
       source={require("../../assets/images/background-bg.jpg")}
       style={styles.bg}
@@ -118,190 +97,293 @@ const Profile = () => {
       <SafeAreaView style={styles.safe}>
 
         <View style={{ position: "relative" }}>
-          <GradientHeader title="My Profile" />
+          <GradientHeader title="Resident Profile" />
 
-          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={22} color="#fff" />
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={handleLogout}
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={22}
+              color="#fff"
+            />
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.container}
+        >
           <View style={styles.card}>
 
-            {/* CIRCLE AVATAR FIXED */}
-            <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
-              {photo ? (
-                <Image source={{ uri: photo }} style={styles.avatar} />
-              ) : (
-                <View style={styles.placeholder}>
-                  <Ionicons name="camera" size={32} color="#2e7d32" />
-                  <Text style={styles.addText}>Tap to add photo</Text>
-                </View>
-              )}
-            </TouchableOpacity>
+            <View style={styles.profileHeader}>
 
-            <Text style={styles.info}>Name: {user.name || "-"}</Text>
-            <Text style={styles.info}>Email: {user.email || "-"}</Text>
-            <Text style={styles.info}>Phone: {user.phone || "-"}</Text>
-            <Text style={styles.info}>Address: {user.address || "-"}</Text>
-            <Text style={styles.info}>Birthdate: {user.birthdate || "-"}</Text>
+              <TouchableOpacity
+                onPress={() => router.push("/profile/edit-profile")}
+              >
+                {user.profilePic ? (
+                  <Image
+                    source={{ uri: user.profilePic }}
+                    style={styles.avatar}
+                  />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Ionicons
+                      name="person"
+                      size={45}
+                      color="#2e7d32"
+                    />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <Text style={styles.name}>
+                {user.name || "Resident Name"}
+              </Text>
+
+              <Text style={styles.subtitle}>
+                Registered Resident
+              </Text>
+
+            </View>
+
+            <View style={styles.section}>
+
+              <Text style={styles.sectionTitle}>
+                Resident Information
+              </Text>
+
+              <View style={styles.infoCard}>
+                <Ionicons
+                  name="person-outline"
+                  size={22}
+                  color="#2e7d32"
+                />
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <Text style={styles.value}>
+                    {user.name || "-"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoCard}>
+                <Ionicons
+                  name="mail-outline"
+                  size={22}
+                  color="#2e7d32"
+                />
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>Email Address</Text>
+                  <Text style={styles.value}>
+                    {user.email || "-"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoCard}>
+                <Ionicons
+                  name="call-outline"
+                  size={22}
+                  color="#2e7d32"
+                />
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <Text style={styles.value}>
+                    {user.phone || "-"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoCard}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={22}
+                  color="#2e7d32"
+                />
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>Birthdate</Text>
+                  <Text style={styles.value}>
+                    {user.birthdate || "-"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoCard}>
+                <Ionicons
+                  name="location-outline"
+                  size={22}
+                  color="#2e7d32"
+                />
+                <View style={styles.infoContent}>
+                  <Text style={styles.label}>Address</Text>
+                  <Text style={styles.value}>
+                    {user.address || "-"}
+                  </Text>
+                </View>
+              </View>
+
+            </View>
 
             <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => setModalVisible(true)}
+              style={styles.submitBtn}
+              onPress={() => router.push("/profile/edit-profile")}
             >
-              <Text style={styles.editText}>Edit Profile</Text>
+              <Ionicons
+                name="create-outline"
+                size={20}
+                color="#fff"
+              />
+              <Text style={styles.submitText}>
+                Edit Profile
+              </Text>
             </TouchableOpacity>
 
           </View>
         </ScrollView>
-
-        {/* MODAL */}
-        <Modal visible={modalVisible} animationType="slide" transparent>
-          <View style={styles.overlay}>
-            <View style={styles.modal}>
-
-              <ScrollView>
-
-                <Text style={styles.title}>Edit Profile</Text>
-
-                <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} />
-                <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} />
-                <TextInput style={styles.input} placeholder="Phone" value={phone} onChangeText={setPhone} />
-                <TextInput style={styles.input} placeholder="Address" value={address} onChangeText={setAddress} />
-                <TextInput style={styles.input} placeholder="Birthdate" value={birthdate} onChangeText={setBirthdate} />
-
-                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                  <Text style={styles.saveText}>Save</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setModalVisible(false)}>
-                  <Text style={{ textAlign: "center", marginTop: 10 }}>Cancel</Text>
-                </TouchableOpacity>
-
-              </ScrollView>
-
-            </View>
-          </View>
-        </Modal>
-
       </SafeAreaView>
     </ImageBackground>
   );
 };
 
 export default Profile;
-
 const styles = StyleSheet.create({
-  bg: { flex: 1 },
-  safe: { flex: 1 },
-
-  container: { padding: 16 },
-
-  card: {
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 15,
-    alignItems: "center",
+  bg: {
+    flex: 1,
   },
 
-  /* 🔥 FIXED CIRCLE AVATAR */
-  avatarWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 3,
-    borderColor: "#2e7d32",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 15,
-    backgroundColor: "#f5f5f5",
-    overflow: "hidden",
-  },
-
-  avatar: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 60,
-  },
-
-  placeholder: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  addText: {
-    fontSize: 12,
-    color: "#2e7d32",
-    marginTop: 5,
-    fontWeight: "600",
-  },
-
-  info: {
-    marginTop: 8,
-    fontSize: 14,
-  },
-
-  editBtn: {
-    marginTop: 15,
-    backgroundColor: "#2e7d32",
-    padding: 12,
-    borderRadius: 10,
-    width: "100%",
-  },
-
-  editText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "800",
+  safe: {
+    flex: 1,
   },
 
   logoutBtn: {
     position: "absolute",
-    right: 15,
-    top: 44,
+    right: 20,
+    top: 25,
     backgroundColor: "#2e7d32",
-    padding: 10,
-    borderRadius: 20,
-  },
-
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     justifyContent: "center",
-    padding: 20,
+    alignItems: "center",
+    elevation: 5,
+    marginTop: 20,
   },
 
-  modal: {
+  container: {
+    padding: 18,
+    paddingBottom: 40,
+  },
+
+  card: {
     backgroundColor: "#fff",
+    borderRadius: 22,
+    padding: 22,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+  },
+
+  profileHeader: {
+    alignItems: "center",
+    marginBottom: 25,
+  },
+
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: "#2e7d32",
+  },
+
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#EAF6EC",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#2e7d32",
+  },
+
+  name: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2e7d32",
+    marginTop: 12,
+    textAlign: "center",
+  },
+
+  subtitle: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+  },
+
+  section: {
+    marginTop: 5,
+  },
+
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#2e7d32",
+    marginBottom: 15,
+  },
+
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7FBF7",
     borderRadius: 15,
-    padding: 20,
-    maxHeight: "85%",
+    padding: 15,
+    marginBottom: 12,
+    borderLeftWidth: 5,
+    borderLeftColor: "#2e7d32",
+    elevation: 2,
   },
 
-  title: {
-    fontWeight: "800",
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: "center",
+  infoContent: {
+    marginLeft: 12,
+    flex: 1,
   },
 
-  input: {
-    backgroundColor: "#f3f3f3",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
+  label: {
+    fontSize: 12,
+    color: "#777",
+    marginBottom: 2,
+    fontWeight: "600",
   },
 
-  saveBtn: {
+  value: {
+    fontSize: 15,
+    color: "#222",
+    fontWeight: "600",
+  },
+
+  submitBtn: {
+    marginTop: 20,
     backgroundColor: "#2e7d32",
-    padding: 14,
-    borderRadius: 10,
+    borderRadius: 14,
+    height: 54,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+    elevation: 4,
   },
 
-  saveText: {
+  submitText: {
     color: "#fff",
-    textAlign: "center",
-    fontWeight: "800",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginLeft: 8,
   },
 });

@@ -6,106 +6,115 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+
         tabBarActiveTintColor: "#2e7d32",
+        tabBarInactiveTintColor: "#9E9E9E",
+
+        tabBarStyle: {
+          height: 70,
+          paddingBottom: 8,
+          paddingTop: 8,
+          backgroundColor: "#ffffff",
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+          position: "absolute",
+          elevation: 12,
+          shadowColor: "#000",
+          shadowOpacity: 0.15,
+          shadowOffset: {
+            width: 0,
+            height: -3,
+          },
+          shadowRadius: 8,
+        },
+
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "700",
+        },
       }}
     >
-
-      {/* ANNOUNCEMENTS */}
-
       <Tabs.Screen
         name="announcement"
         options={{
-          title: "Announcements",
-          tabBarIcon: ({ color, size }) => (
+          title: "News",
+          tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name="megaphone"
-              size={size}
+              name={focused ? "megaphone" : "megaphone-outline"}
+              size={26}
               color={color}
             />
           ),
         }}
       />
-
-      {/* REPORT */}
 
       <Tabs.Screen
         name="report"
         options={{
           title: "Report",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name="alert-circle"
-              size={size}
+              name={focused ? "warning" : "warning-outline"}
+              size={26}
               color={color}
             />
           ),
         }}
       />
-
-      {/* FEEDBACK */}
 
       <Tabs.Screen
         name="feedback"
         options={{
           title: "Concern",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name="chatbubble-ellipses"
-              size={size}
+              name={
+                focused
+                  ? "chatbubbles"
+                  : "chatbubbles-outline"
+              }
+              size={26}
               color={color}
             />
           ),
         }}
       />
 
-      {/* PROFILE */}
+      <Tabs.Screen
+        name="documents"
+        options={{
+          title: "Docs",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={
+                focused
+                  ? "document-text"
+                  : "document-text-outline"
+              }
+              size={26}
+              color={color}
+            />
+          ),
+        }}
+      />
 
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name="person"
-              size={size}
+              name={
+                focused
+                  ? "person-circle"
+                  : "person-circle-outline"
+              }
+              size={28}
               color={color}
             />
           ),
         }}
       />
-
-      {/* DOCUMENTS */}
-
-      <Tabs.Screen
-        name="documents"
-        options={{
-          title: "Documents",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              name="document-text"
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
-
-      {/* HIDE ADMIN PAGES */}
-
-      <Tabs.Screen
-        name="admin"
-        options={{
-          href: null,
-        }}
-      />
-
-      <Tabs.Screen
-        name="adminLogin"
-        options={{
-          href: null,
-        }}
-      />
-
     </Tabs>
   );
 }

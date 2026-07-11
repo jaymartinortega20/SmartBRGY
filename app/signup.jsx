@@ -15,8 +15,18 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { db } from "../firebaseConfig";
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  setDoc,
+  doc,
+} from "firebase/firestore";
+
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from "firebase/auth";
+
+import { db, auth } from "../firebaseConfig";
 
 export default function Signup() {
   const router = useRouter();
@@ -27,53 +37,63 @@ export default function Signup() {
 
   // ✅ FIXED SIGNUP FUNCTION
   const handleSignup = async () => {
-    if (!email || !password || !confirm) {
-      Alert.alert("Error", "Please fill all fields");
-      return;
-    }
+  if (!email || !password || !confirm) {
+    Alert.alert("Error", "Please fill all fields");
+    return;
+  }
 
-    if (password !== confirm) {
-      Alert.alert("Error", "Passwords do not match");
-      return;
-    }
+  if (password !== confirm) {
+    Alert.alert("Error", "Passwords do not match");
+    return;
+  }
 
-    try {
-      // 🔍 Check if email already exists
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", email.trim())
-      );
-      const snap = await getDocs(q);
-
-      if (!snap.empty) {
-        Alert.alert("Error", "Email already registered");
-        return;
-      }
-
-      // 🔥 Save user to Firestore
-      const docRef = await addDoc(collection(db, "users"), {
-        email: email.trim(),
-        password: password.trim(),
-        createdAt: new Date(),
-      });
-
-      // 💾 Save session (optional)
-      await AsyncStorage.setItem(
-        "currentUser",
-        JSON.stringify({
-          id: docRef.id,
-          email: email.trim(),
-        })
+  try {
+    // Create account in Firebase Authentication
+    const userCredential =
+      await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password.trim()
       );
 
-      Alert.alert("Success", "Account created successfully");
-      router.replace("/login");
+    const user = userCredential.user;
 
-    } catch (err) {
-      console.error("Signup error:", err);
-      Alert.alert("Error", "Signup failed");
+    // Send verification email
+    await sendEmailVerification(user);
+
+    // Save profile to Firestore
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      email: email.trim(),
+      role: "resident",
+      createdAt: new Date(),
+    });
+
+    Alert.alert(
+      "Account Created",
+      "A verification email has been sent to your email address."
+    );
+
+    router.replace("/login");
+
+  } catch (error) {
+
+    console.log(error);
+
+    if (error.code === "auth/email-already-in-use") {
+      Alert.alert("Error", "Email already exists.");
+    } else if (error.code === "auth/weak-password") {
+      Alert.alert(
+        "Weak Password",
+        "Password must be at least 6 characters."
+      );
+    } else if (error.code === "auth/invalid-email") {
+      Alert.alert("Invalid Email");
+    } else {
+      Alert.alert("Signup Failed", error.message);
     }
-  };
+  }
+};
 
   return (
     <ImageBackground
