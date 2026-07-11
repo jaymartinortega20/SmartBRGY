@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 250,
     height: 250,
-    marginTop: 70,
+    marginTop: 80,
   },
 
   /* BOTTOM */

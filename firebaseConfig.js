@@ -1,8 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";  // ✅ Firestore
+import { getFirestore } from "firebase/firestore";  
 import { getAuth } from "firebase/auth";
 
-// Your web app's Firebase configuration
+
 const firebaseConfig = {
   apiKey: "AIzaSyBv_ZD379btnkOpgmh5hfhSVPv3aL8DCqU",
   authDomain: "gamestudy-f0ecd.firebaseapp.com",

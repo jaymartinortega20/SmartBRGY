@@ -17,8 +17,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { db } from "../firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
 
 export default function Login() {
   const router = useRouter();
@@ -28,59 +29,87 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert("Error", "Please fill all fields");
-      return;
+  if (!email || !password) {
+    Alert.alert("Error", "Please fill all fields");
+    return;
+  }
+
+  try {
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email.trim(),
+      password.trim()
+    );
+
+    const user = userCredential.user;
+
+// Refresh verification status
+await user.reload();
+
+// Get user profile from Firestore
+const docSnap = await getDoc(doc(db, "users", user.uid));
+
+if (!docSnap.exists()) {
+  Alert.alert("Error", "User profile not found.");
+  await auth.signOut();
+  return;
+}
+
+const userData = {
+  id: user.uid,
+  ...docSnap.data(),
+};
+
+// Residents only kinahanglan verified
+if (
+  userData.role !== "admin" &&
+  !user.emailVerified
+) {
+  Alert.alert(
+    "Email Not Verified",
+    "Please verify your email first. Check your inbox."
+  );
+
+  await auth.signOut();
+  return;
+}
+
+// Save session
+await AsyncStorage.setItem(
+  "currentUser",
+  JSON.stringify(userData)
+);
+
+// Redirect by role
+if (userData.role === "admin") {
+
+  await AsyncStorage.setItem("isAdmin", "true");
+
+  router.replace("/admin");
+
+} else {
+
+  await AsyncStorage.setItem("isAdmin", "false");
+
+  router.replace("/onboarding");
+
+}
+
+  } catch (error) {
+
+    console.log(error);
+
+    if (
+      error.code === "auth/invalid-credential" ||
+      error.code === "auth/user-not-found" ||
+      error.code === "auth/wrong-password"
+    ) {
+      Alert.alert("Login Failed", "Invalid email or password.");
+    } else {
+      Alert.alert("Error", error.message);
     }
-
-    try {
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", email.trim()),
-        where("password", "==", password.trim())
-      );
-
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        Alert.alert("Login Failed", "Invalid email or password");
-        return;
-      }
-
-      const docSnap = snapshot.docs[0];
-      const userData = {
-        id: docSnap.id,
-        ...docSnap.data(),
-      };
-
-      // Save current user
-      await AsyncStorage.setItem(
-        "currentUser",
-        JSON.stringify(userData)
-      );
-
-      // Check if admin
-      if (userData.role === "admin") {
-
-        await AsyncStorage.setItem("isAdmin", "true");
-
-        Alert.alert("Success", "Welcome Admin");
-
-        router.replace("/admin");
-
-      } else {
-
-        await AsyncStorage.setItem("isAdmin", "false");
-
-        router.replace("/onboarding");
-
-      }
-
-    } catch (err) {
-      console.log(err);
-      Alert.alert("Error", "Login failed");
-    }
-  };
+  }
+};
 
   return (
     <ImageBackground
@@ -140,6 +169,20 @@ export default function Login() {
                 <Text>{showPassword ? "🙈" : "👁️"}</Text>
               </TouchableOpacity>
             </LinearGradient>
+            <TouchableOpacity
+  onPress={() => router.push("/forgotPassword")}
+>
+  <Text
+    style={{
+      color:"#2e7d32",
+      alignSelf:"flex-end",
+      marginBottom:15,
+      fontWeight:"600"
+    }}
+  >
+    Forgot Password?
+  </Text>
+</TouchableOpacity>
 
             <TouchableOpacity onPress={handleLogin}>
               <LinearGradient
